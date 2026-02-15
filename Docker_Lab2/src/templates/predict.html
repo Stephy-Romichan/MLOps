@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Breast Cancer | AI Classifier</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+  <style>
+    :root { --primary:#00f2ff; --secondary:#bd00ff; --glass-bg:rgba(255,255,255,0.05); --glass-border:rgba(255,255,255,0.1); }
+    body{
+      font-family:'Roboto',sans-serif;
+      background: radial-gradient(circle at top left,#1a1a2e,#16213e,#0f172a);
+      color:#e2e8f0; margin:0; min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .container{ width:92%; max-width:520px; display:grid; gap:2rem; }
+    .glass-card{
+      background:var(--glass-bg); backdrop-filter:blur(16px);
+      border:1px solid var(--glass-border); border-radius:24px;
+      padding:2.25rem; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    h1{
+      font-family:'Orbitron',sans-serif; text-align:center; margin:0 0 1rem;
+      background:linear-gradient(to right,var(--primary),var(--secondary));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      letter-spacing:2px;
+    }
+    .subtitle{ text-align:center; color:#94a3b8; margin:0 0 1.25rem; line-height:1.35; }
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    @media (max-width:520px){ .grid{ grid-template-columns:1fr; } }
+    label{
+      display:block; margin-bottom:0.5rem; font-size:0.78rem;
+      color:#94a3b8; font-weight:600; letter-spacing:1px; text-transform:uppercase;
+    }
+    input[type="number"]{
+      width:100%; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border);
+      color:#fff; padding:12px 14px; border-radius:12px;
+      font-family:'Orbitron',sans-serif; font-size:0.95rem; box-sizing:border-box;
+    }
+    input[type="number"]:focus{
+      outline:none; border-color:var(--primary);
+      box-shadow:0 0 15px rgba(0,242,255,0.2); background:rgba(0,0,0,0.4);
+    }
+    .row{ display:flex; gap:12px; margin-top:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .pill{
+      padding:8px 12px; border-radius:999px; border:1px solid var(--glass-border);
+      background:rgba(0,0,0,0.2); color:#cbd5e1; font-size:0.85rem;
+    }
+    button.submit-btn{
+      width:100%; margin-top:1.25rem; padding:16px;
+      background:linear-gradient(135deg,var(--secondary),var(--primary));
+      border:none; border-radius:12px; color:#fff; cursor:pointer;
+      font-family:'Orbitron',sans-serif; font-weight:700; letter-spacing:2px;
+      display:flex; align-items:center; justify-content:center; gap:10px;
+    }
+    .spinner{
+      display:none; width:24px; height:24px;
+      border:3px solid rgba(255,255,255,0.3); border-radius:50%;
+      border-top-color:#fff; animation:spin 1s ease-in-out infinite;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+    .result-container{ display:none; opacity:0; transform:translateY(20px); transition:all 0.4s ease; text-align:center; }
+    .result-container.active{ display:block; opacity:1; transform:translateY(0); }
+    .prediction-badge{
+      display:inline-block; padding:8px 16px; border-radius:999px;
+      border:1px solid var(--primary); color:var(--primary);
+      background:rgba(255,255,255,0.1); margin-bottom:10px;
+      font-family:'Orbitron',sans-serif; letter-spacing:1px;
+    }
+    .confidence{ color:#cbd5e1; margin-top:0.5rem; }
+    .small{ font-size:0.85rem; color:#94a3b8; }
+    .defaults-box{
+      margin-top:1rem; border:1px dashed rgba(255,255,255,0.15);
+      border-radius:14px; padding:12px; color:#94a3b8; font-size:0.85rem;
+    }
+    .toggle{
+      cursor:pointer; text-decoration:underline; color:#cbd5e1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="glass-card">
+      <h1>NEURAL CANCER</h1>
+      <div class="subtitle">
+        Enter a few key features (we auto-fill the rest).<br/>
+        <span class="small">This is a demo UI — not medical advice.</span>
+      </div>
+
+      <form id="predictionForm">
+        <div class="grid">
+          <!-- These map to feature indices from sklearn breast cancer dataset -->
+          <div>
+            <label for="feature_0">Mean Radius (feature_0)</label>
+            <input type="number" id="feature_0" step="0.0001" placeholder="e.g., 14.0" required />
+          </div>
+          <div>
+            <label for="feature_2">Mean Perimeter (feature_2)</label>
+            <input type="number" id="feature_2" step="0.0001" placeholder="e.g., 91.0" required />
+          </div>
+          <div>
+            <label for="feature_3">Mean Area (feature_3)</label>
+            <input type="number" id="feature_3" step="0.0001" placeholder="e.g., 650.0" required />
+          </div>
+          <div>
+            <label for="feature_7">Mean Concave Points (feature_7)</label>
+            <input type="number" id="feature_7" step="0.000001" placeholder="e.g., 0.05" required />
+          </div>
+          <div>
+            <label for="feature_20">Worst Radius (feature_20)</label>
+            <input type="number" id="feature_20" step="0.0001" placeholder="e.g., 16.0" required />
+          </div>
+          <div>
+            <label for="feature_22">Worst Perimeter (feature_22)</label>
+            <input type="number" id="feature_22" step="0.0001" placeholder="e.g., 105.0" required />
+          </div>
+          <div>
+            <label for="feature_23">Worst Area (feature_23)</label>
+            <input type="number" id="feature_23" step="0.0001" placeholder="e.g., 800.0" required />
+          </div>
+          <div>
+            <label for="feature_27">Worst Concave Points (feature_27)</label>
+            <input type="number" id="feature_27" step="0.000001" placeholder="e.g., 0.12" required />
+          </div>
+        </div>
+
+        <div class="row">
+          <span class="pill">Auto-filling 22 other features</span>
+          <span class="pill"><span class="toggle" id="toggleDefaults">view defaults</span></span>
+        </div>
+
+        <div class="defaults-box" id="defaultsBox" style="display:none;">
+          We send <b>feature_0..feature_29</b> to Flask. Any feature you don’t enter is filled with a default value.
+          <br/><br/>
+          <span class="small">Tip: best accuracy comes from using real values for all 30 features (or retraining a model on fewer).</span>
+        </div>
+
+        <button type="submit" class="submit-btn">
+          <span id="btnText">ANALYZE</span>
+          <div class="spinner" id="btnSpinner"></div>
+        </button>
+      </form>
+    </div>
+
+    <div id="resultArea" class="glass-card result-container">
+      <div class="prediction-badge" id="badgeText">PREDICTION</div>
+      <h2 id="predictedClass" style="margin: 10px 0; color: #fff; font-family: 'Orbitron', sans-serif;"></h2>
+      <div class="confidence" id="confidenceText"></div>
+    </div>
+  </div>
+
+  <script>
+    // We still POST feature_0..feature_29
+    const FEATURE_COUNT = 30;
+
+    // Defaults used when a field isn't present in the UI.
+    // These are "reasonable-ish" demo defaults — you can replace with:
+    // - dataset means, or
+    // - your own fixed baseline sample.
+    const DEFAULTS = Array(FEATURE_COUNT).fill(0);
+
+    // Seed a few defaults to avoid all-zeros (better than nothing for demo)
+    DEFAULTS[0]  = 14.0;   // mean radius
+    DEFAULTS[2]  = 91.0;   // mean perimeter
+    DEFAULTS[3]  = 650.0;  // mean area
+    DEFAULTS[7]  = 0.05;   // mean concave points
+    DEFAULTS[20] = 16.0;   // worst radius
+    DEFAULTS[22] = 105.0;  // worst perimeter
+    DEFAULTS[23] = 800.0;  // worst area
+    DEFAULTS[27] = 0.12;   // worst concave points
+
+    // The only fields we show to the user:
+    const VISIBLE_FEATURES = [0,2,3,7,20,22,23,27];
+
+    $(document).ready(function () {
+      $("#toggleDefaults").on("click", function () {
+        $("#defaultsBox").toggle();
+      });
+
+      $("#predictionForm").on("submit", function (event) {
+        event.preventDefault();
+
+        const $btn = $(".submit-btn");
+        const $text = $("#btnText");
+        const $spinner = $("#btnSpinner");
+
+        $text.hide();
+        $spinner.show();
+        $btn.css("opacity", "0.7");
+
+        // Build formData for all 30 expected keys
+        const formData = {};
+        for (let i = 0; i < FEATURE_COUNT; i++) {
+          formData[`feature_${i}`] = DEFAULTS[i];
+        }
+
+        // Overwrite defaults with user-provided visible inputs
+        for (const idx of VISIBLE_FEATURES) {
+          const val = $(`#feature_${idx}`).val();
+          formData[`feature_${idx}`] = val;
+        }
+
+        $.ajax({
+          type: "POST",
+          url: "/predict",
+          data: formData,
+          dataType: "json",
+          encode: true
+        })
+        .done(function (data) {
+          const cls = (data.predicted_class || "").toString();
+          const score = Number(data.confidence);
+
+          $("#predictedClass").text(cls.toUpperCase());
+
+          if (!Number.isNaN(score)) {
+            $("#confidenceText").text(`Model score: ${score.toFixed(4)} (sigmoid output)`);
+            $("#badgeText").text(`CONFIDENCE: ${score >= 0.9 || score <= 0.1 ? "HIGH" : "MEDIUM"}`);
+          } else {
+            $("#confidenceText").text("Confidence score unavailable.");
+            $("#badgeText").text("PREDICTION COMPLETE");
+          }
+
+          $("#resultArea").addClass("active");
+
+          $text.show();
+          $spinner.hide();
+          $btn.css("opacity", "1");
+        })
+        .fail(function () {
+          alert("SYSTEM ERROR: Neural Link Disconnected.");
+          $text.show();
+          $spinner.hide();
+          $btn.css("opacity", "1");
+        });
+      });
+    });
+  </script>
+</body>
+</html>
